@@ -1,18 +1,19 @@
 # import necessary modules
-import sys
+import os, sys
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QLabel, QAction,
-    QMessageBox, QFileDialog)
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPixmap
+    QToolBar, QMessageBox, QFileDialog)
+from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtGui import QIcon, QPixmap
 
 class imageLabel(QLabel):
     """Subclass of QLabel for displaying image"""
-    def __init__(self, parent):
+    def __init__(self, parent, image=None):
         super().__init__(parent)
         self.parent = parent
+        self.image = image
 
         # Load image
-        pixmap = QPixmap("images/parrot.png")
+        pixmap = QPixmap(self.image)
         self.setAlignment(Qt.AlignCenter)
         self.setPixmap(pixmap)
 
@@ -28,22 +29,23 @@ class PhotoEditorGUI(QMainWindow):
         self.setWindowTitle("Photo Editor")
         self.showMaximized()
 
-        self.image_label = None
-
         self.createMenu()
+        self.createToolBar()
         self.createMainLabel()
 
         self.show()
 
     def createMenu(self):
         """Set up the menubar."""
-        open_act = QAction('Open...', self)
-        open_act.setShortcut('Ctrl+O')
-        open_act.triggered.connect(self.openImage)
+        icon_path = "icons"
 
-        exit_act = QAction('Exit', self)
-        exit_act.setShortcut('Ctrl+Q')
-        exit_act.triggered.connect(self.close)
+        self.open_act = QAction(QIcon(os.path.join(icon_path, "open.png")),'Open...', self)
+        self.open_act.setShortcut('Ctrl+O')
+        self.open_act.triggered.connect(self.openImage)
+
+        self.exit_act = QAction(QIcon(os.path.join(icon_path, "exit.png")), 'Exit', self)
+        self.exit_act.setShortcut('Ctrl+Q')
+        self.exit_act.triggered.connect(self.close)
 
         # Create menubar
         menu_bar = self.menuBar()
@@ -51,12 +53,22 @@ class PhotoEditorGUI(QMainWindow):
 
         # Create file menu and add actions
         file_menu = menu_bar.addMenu('File')
-        file_menu.addAction(open_act)
+        file_menu.addAction(self.open_act)
         file_menu.addSeparator()
-        file_menu.addAction(exit_act)
+        file_menu.addAction(self.exit_act)
 
         edit_menu = menu_bar.addMenu('Edit')
         #edit_menu.addAction()
+
+    def createToolBar(self):
+        """Set up the toolbar."""
+        tool_bar = QToolBar("Main Toolbar")
+        tool_bar.setIconSize(QSize(30, 30))
+        self.addToolBar(tool_bar)
+
+        # Add actions to the toolbar
+        tool_bar.addAction(self.open_act)
+        tool_bar.addAction(self.exit_act)
 
     def createMainLabel(self):
         """Create an instance of the imageLabel class and set it 
@@ -68,12 +80,21 @@ class PhotoEditorGUI(QMainWindow):
     def openImage(self):
         """ """
         image_file, _ = QFileDialog.getOpenFileName(self, "Open Image", 
-                "", "JPG Files (*.jpeg *.jpg );;PNG Files (*.png);;Bitmap Files (*.bmp);;\
+                "", "PNG Files (*.png);;JPG Files (*.jpeg *.jpg );;Bitmap Files (*.bmp);;\
                 GIF Files (*.gif)")
-        """
+        
         if image_file:
-            self.image = QPixmap(image_file)
-        """
+            image = QPixmap(image_file)
+            self.image_label.setPixmap(image)
+
+            #self.image_label.setPixmap(image.scaled(self.image_label.size(), 
+            #    Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        elif image_file == "":
+            # User selected Cancel
+            pass
+        else:
+            QMessageBox.information(self, "Error", 
+                "Unable to open image.", QMessageBox.Ok)
 
     def aboutDialog(self):
         pass
@@ -94,5 +115,6 @@ class PhotoEditorGUI(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    app.setAttribute(Qt.AA_DontShowIconsInMenus, True)
     window = PhotoEditorGUI()
     sys.exit(app.exec_())
