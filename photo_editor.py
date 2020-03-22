@@ -1,9 +1,11 @@
 # import necessary modules
 import os, sys
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QLabel, QAction,
-    QToolBar, QMessageBox, QFileDialog)
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel, QAction,
+    QToolButton, QToolBar, QDockWidget, QMessageBox, QFileDialog, QGridLayout)
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QIcon, QPixmap
+
+icon_path = "icons"
 
 class imageLabel(QLabel):
     """Subclass of QLabel for displaying image"""
@@ -31,19 +33,21 @@ class PhotoEditorGUI(QMainWindow):
 
         self.createMenu()
         self.createToolBar()
+        self.createEditingBar()
         self.createMainLabel()
 
         self.show()
 
     def createMenu(self):
         """Set up the menubar."""
-        icon_path = "icons"
+        about_act = QAction('About', self)
+        about_act.triggered.connect(self.aboutDialog)
 
         self.open_act = QAction(QIcon(os.path.join(icon_path, "open.png")),'Open...', self)
         self.open_act.setShortcut('Ctrl+O')
         self.open_act.triggered.connect(self.openImage)
 
-        self.exit_act = QAction(QIcon(os.path.join(icon_path, "exit.png")), 'Exit', self)
+        self.exit_act = QAction(QIcon(os.path.join(icon_path, "exit.png")), 'Quit Photo Editor', self)
         self.exit_act.setShortcut('Ctrl+Q')
         self.exit_act.triggered.connect(self.close)
 
@@ -51,11 +55,15 @@ class PhotoEditorGUI(QMainWindow):
         menu_bar = self.menuBar()
         menu_bar.setNativeMenuBar(False)
 
+        # Create Photo Editor menu and add actions
+        main_menu = menu_bar.addMenu('Photo Editor')
+        main_menu.addAction(about_act)
+        main_menu.addSeparator()
+        main_menu.addAction(self.exit_act)
+
         # Create file menu and add actions
         file_menu = menu_bar.addMenu('File')
         file_menu.addAction(self.open_act)
-        file_menu.addSeparator()
-        file_menu.addAction(self.exit_act)
 
         edit_menu = menu_bar.addMenu('Edit')
         #edit_menu.addAction()
@@ -69,6 +77,24 @@ class PhotoEditorGUI(QMainWindow):
         # Add actions to the toolbar
         tool_bar.addAction(self.open_act)
         tool_bar.addAction(self.exit_act)
+
+    def createEditingBar(self):
+        """Create toolbar for editing tools."""
+        editing_bar = QDockWidget("Tools")
+        editing_bar.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+
+        convert_to_grayscale = QToolButton()
+        convert_to_grayscale.setIcon(QIcon(os.path.join(icon_path, "grayscale.png")))
+
+        editing_grid = QGridLayout()
+        editing_grid.addWidget(convert_to_grayscale, 0, 0, Qt.AlignTop)
+
+        container = QWidget()
+        container.setLayout(editing_grid)
+
+        editing_bar.setWidget(container)
+
+        self.addDockWidget(Qt.LeftDockWidgetArea, editing_bar)
 
     def createMainLabel(self):
         """Create an instance of the imageLabel class and set it 
@@ -97,7 +123,8 @@ class PhotoEditorGUI(QMainWindow):
                 "Unable to open image.", QMessageBox.Ok)
 
     def aboutDialog(self):
-        pass
+        QMessageBox.about(self, "About Photo Editor", 
+            "Photo Editor\nversion0.1\n\nCreated by Joshua Willman")
 
     def keyPressEvent(self, event):
         """Handle key press events."""
