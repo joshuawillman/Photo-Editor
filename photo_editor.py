@@ -1,9 +1,9 @@
 # import necessary modules
-import os, sys
+import os, sys, cv2
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel, QAction,
     QToolButton, QToolBar, QDockWidget, QMessageBox, QFileDialog, QGridLayout)
 from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtGui import QIcon, QPixmap, QImage
 
 icon_path = "icons"
 
@@ -25,6 +25,8 @@ class PhotoEditorGUI(QMainWindow):
         super().__init__()
 
         self.initializeUI()
+
+        self.image = QImage()
 
     def initializeUI(self):
         self.setMinimumSize(500, 400)
@@ -79,15 +81,23 @@ class PhotoEditorGUI(QMainWindow):
         tool_bar.addAction(self.exit_act)
 
     def createEditingBar(self):
-        """Create toolbar for editing tools."""
+        """Create dock widget for editing tools."""
         editing_bar = QDockWidget("Tools")
         editing_bar.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
 
+        # Create editing tool buttons
         convert_to_grayscale = QToolButton()
         convert_to_grayscale.setIcon(QIcon(os.path.join(icon_path, "grayscale.png")))
+        convert_to_grayscale.clicked.connect(self.convertToGray)
 
+        convert_to_RGB = QToolButton()
+        convert_to_RGB.setIcon(QIcon(os.path.join(icon_path, "rgb.png")))
+        convert_to_RGB.clicked.connect(self.convertToRGB)
+
+        # Set layout for dock widget
         editing_grid = QGridLayout()
         editing_grid.addWidget(convert_to_grayscale, 0, 0, Qt.AlignTop)
+        editing_grid.addWidget(convert_to_RGB, 0, 1, Qt.AlignTop)
 
         container = QWidget()
         container.setLayout(editing_grid)
@@ -110,8 +120,10 @@ class PhotoEditorGUI(QMainWindow):
                 GIF Files (*.gif)")
         
         if image_file:
-            image = QPixmap(image_file)
-            self.image_label.setPixmap(image)
+            self.image = QImage(image_file)
+
+            #pixmap = QPixmap(image_file)
+            self.image_label.setPixmap(QPixmap().fromImage(self.image))
 
             #self.image_label.setPixmap(image.scaled(self.image_label.size(), 
             #    Qt.KeepAspectRatio, Qt.SmoothTransformation))
@@ -121,6 +133,19 @@ class PhotoEditorGUI(QMainWindow):
         else:
             QMessageBox.information(self, "Error", 
                 "Unable to open image.", QMessageBox.Ok)
+
+    def convertToGray(self):
+        """Convert image to grayscale."""
+        print("in")
+        converted_img = self.image.convertToFormat(QImage.Format_Grayscale8)
+        self.image_label.setPixmap(QPixmap().fromImage(converted_img))
+        self.image_label.repaint()
+
+    def convertToRGB(self):
+        """Convert image to RGB format."""
+        converted_img = self.image.convertToFormat(QImage.Format_RGB32)
+        self.image_label.setPixmap(QPixmap().fromImage(converted_img))
+        self.image_label.repaint()
 
     def aboutDialog(self):
         QMessageBox.about(self, "About Photo Editor", 
