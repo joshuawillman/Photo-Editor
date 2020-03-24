@@ -3,7 +3,7 @@ import os, sys, cv2
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel, QAction,
     QToolButton, QToolBar, QDockWidget, QMessageBox, QFileDialog, QGridLayout)
 from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QIcon, QPixmap, QImage
+from PyQt5.QtGui import QIcon, QPixmap, QImage, QTransform
 
 icon_path = "icons"
 
@@ -33,25 +33,34 @@ class PhotoEditorGUI(QMainWindow):
         self.setWindowTitle("Photo Editor")
         self.showMaximized()
 
+        self.createEditingBar()
         self.createMenu()
         self.createToolBar()
-        self.createEditingBar()
         self.createMainLabel()
 
         self.show()
 
     def createMenu(self):
         """Set up the menubar."""
+        # Actions for Photo Editor menu
         about_act = QAction('About', self)
         about_act.triggered.connect(self.aboutDialog)
-
-        self.open_act = QAction(QIcon(os.path.join(icon_path, "open.png")),'Open...', self)
-        self.open_act.setShortcut('Ctrl+O')
-        self.open_act.triggered.connect(self.openImage)
 
         self.exit_act = QAction(QIcon(os.path.join(icon_path, "exit.png")), 'Quit Photo Editor', self)
         self.exit_act.setShortcut('Ctrl+Q')
         self.exit_act.triggered.connect(self.close)
+
+        # Actions for File menu
+        self.open_act = QAction(QIcon(os.path.join(icon_path, "open.png")),'Open...', self)
+        self.open_act.setShortcut('Ctrl+O')
+        self.open_act.triggered.connect(self.openImage)
+
+        # Actions for Edit menu
+        self.rotate_90_act = QAction(QIcon(os.path.join(icon_path, "rotate90.png")),'Rotate 90º', self)
+        self.rotate_90_act.triggered.connect(self.rotateImage90)
+
+        # Actions for Views menu
+        #self.tools_menu_act = QAction(QIcon(os.path.join(icon_path, "edit.png")),'Tools View...', self, checkable=True)
 
         # Create menubar
         menu_bar = self.menuBar()
@@ -68,7 +77,10 @@ class PhotoEditorGUI(QMainWindow):
         file_menu.addAction(self.open_act)
 
         edit_menu = menu_bar.addMenu('Edit')
-        #edit_menu.addAction()
+        edit_menu.addAction(self.rotate_90_act)
+
+        views_menu = menu_bar.addMenu('Views')
+        views_menu.addAction(self.tools_menu_act)
 
     def createToolBar(self):
         """Set up the toolbar."""
@@ -79,11 +91,14 @@ class PhotoEditorGUI(QMainWindow):
         # Add actions to the toolbar
         tool_bar.addAction(self.open_act)
         tool_bar.addAction(self.exit_act)
+        tool_bar.addSeparator()
+        tool_bar.addAction(self.rotate_90_act)
 
     def createEditingBar(self):
         """Create dock widget for editing tools."""
-        editing_bar = QDockWidget("Tools")
-        editing_bar.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        self.editing_bar = QDockWidget("Tools")
+        self.editing_bar.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        self.editing_bar.setMinimumWidth(90)
 
         # Create editing tool buttons
         convert_to_grayscale = QToolButton()
@@ -102,9 +117,11 @@ class PhotoEditorGUI(QMainWindow):
         container = QWidget()
         container.setLayout(editing_grid)
 
-        editing_bar.setWidget(container)
+        self.editing_bar.setWidget(container)
 
-        self.addDockWidget(Qt.LeftDockWidgetArea, editing_bar)
+        self.addDockWidget(Qt.LeftDockWidgetArea, self.editing_bar)
+
+        self.tools_menu_act = self.editing_bar.toggleViewAction()
 
     def createMainLabel(self):
         """Create an instance of the imageLabel class and set it 
@@ -134,9 +151,26 @@ class PhotoEditorGUI(QMainWindow):
             QMessageBox.information(self, "Error", 
                 "Unable to open image.", QMessageBox.Ok)
 
+    def rotateImage90(self):
+        """Rotate image 90º clockwise."""
+        if self.image.isNull() == False:
+            transform90 = QTransform().rotate(90)
+            pixmap = QPixmap(self.image)
+
+            rotated = pixmap.transformed(transform90, mode=Qt.SmoothTransformation)
+
+            self.image_label.setPixmap(rotated)
+            #self.image_label.setPixmap(rotated.scaled(self.image_label.size(), 
+            #    Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            self.image = QPixmap(rotated) 
+            self.image_label.repaint() # repaint the child widget
+        else:
+            # No image to rotate
+            pass
+
+
     def convertToGray(self):
         """Convert image to grayscale."""
-        print("in")
         converted_img = self.image.convertToFormat(QImage.Format_Grayscale8)
         self.image_label.setPixmap(QPixmap().fromImage(converted_img))
         self.image_label.repaint()
