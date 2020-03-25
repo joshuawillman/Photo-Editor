@@ -17,4 +17,5 @@ March 20, 2020 – Added menubar and QFileDialog classes.
 March 21, 2020 – Added toolbar. Can also choose images.  
 March 22, 2020 – Added dock widget and basic about dialog box.  
 March 23, 2020 - Added functionality to editing tool buttons, grayscale and RGB, using PyQt5 QImage class methods.  
-March 24, 2020 - Added a rotate images button in the toolbar. Made the tools dock widget checkable in the menu.
+March 24, 2020 - Added a rotate images button in the toolbar. Made the tools dock widget checkable in the menu.  
+March 25, 2020 - Added more tranformation tool buttons to the toolbar.
