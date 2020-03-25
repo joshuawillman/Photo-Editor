@@ -56,8 +56,17 @@ class PhotoEditorGUI(QMainWindow):
         self.open_act.triggered.connect(self.openImage)
 
         # Actions for Edit menu
-        self.rotate_90_act = QAction(QIcon(os.path.join(icon_path, "rotate90.png")),'Rotate 90º', self)
-        self.rotate_90_act.triggered.connect(self.rotateImage90)
+        self.rotate90_cw_act = QAction(QIcon(os.path.join(icon_path, "rotate90_cw.png")),'Rotate 90º CW', self)
+        self.rotate90_cw_act.triggered.connect(lambda: self.rotateImage90("cw"))
+
+        self.rotate90_ccw_act = QAction(QIcon(os.path.join(icon_path, "rotate90_ccw.png")),'Rotate 90º CCW', self)
+        self.rotate90_ccw_act.triggered.connect(lambda: self.rotateImage90("ccw"))
+
+        self.flip_horizontal = QAction(QIcon(os.path.join(icon_path, "flip_horizontal.png")), 'Flip Horizontal', self)
+        self.flip_horizontal.triggered.connect(lambda: self.flipImage("horizontal"))
+
+        self.flip_vertical = QAction(QIcon(os.path.join(icon_path, "flip_vertical.png")), 'Flip Vertical', self)
+        self.flip_vertical.triggered.connect(lambda: self.flipImage('vertical'))
 
         # Actions for Views menu
         #self.tools_menu_act = QAction(QIcon(os.path.join(icon_path, "edit.png")),'Tools View...', self, checkable=True)
@@ -77,7 +86,10 @@ class PhotoEditorGUI(QMainWindow):
         file_menu.addAction(self.open_act)
 
         edit_menu = menu_bar.addMenu('Edit')
-        edit_menu.addAction(self.rotate_90_act)
+        edit_menu.addAction(self.rotate90_cw_act)
+        edit_menu.addAction(self.rotate90_ccw_act)
+        edit_menu.addAction(self.flip_horizontal)
+        edit_menu.addAction(self.flip_vertical)
 
         views_menu = menu_bar.addMenu('Views')
         views_menu.addAction(self.tools_menu_act)
@@ -92,8 +104,11 @@ class PhotoEditorGUI(QMainWindow):
         tool_bar.addAction(self.open_act)
         tool_bar.addAction(self.exit_act)
         tool_bar.addSeparator()
-        tool_bar.addAction(self.rotate_90_act)
-
+        tool_bar.addAction(self.rotate90_ccw_act)
+        tool_bar.addAction(self.rotate90_cw_act)
+        tool_bar.addAction(self.flip_horizontal)
+        tool_bar.addAction(self.flip_vertical)
+    
     def createEditingBar(self):
         """Create dock widget for editing tools."""
         self.editing_bar = QDockWidget("Tools")
@@ -151,10 +166,14 @@ class PhotoEditorGUI(QMainWindow):
             QMessageBox.information(self, "Error", 
                 "Unable to open image.", QMessageBox.Ok)
 
-    def rotateImage90(self):
-        """Rotate image 90º clockwise."""
+    def rotateImage90(self, direction):
+        """Rotate image 90º clockwise or counterclockwise."""
         if self.image.isNull() == False:
-            transform90 = QTransform().rotate(90)
+            if direction == "cw":
+                transform90 = QTransform().rotate(90)
+            elif direction == "ccw":
+                transform90 = QTransform().rotate(-90)
+
             pixmap = QPixmap(self.image)
 
             rotated = pixmap.transformed(transform90, mode=Qt.SmoothTransformation)
@@ -162,12 +181,43 @@ class PhotoEditorGUI(QMainWindow):
             self.image_label.setPixmap(rotated)
             #self.image_label.setPixmap(rotated.scaled(self.image_label.size(), 
             #    Qt.KeepAspectRatio, Qt.SmoothTransformation))
-            self.image = QPixmap(rotated) 
+            self.image = QImage(rotated) 
+            #self.image = QPixmap(rotated)
             self.image_label.repaint() # repaint the child widget
+
+            """
+            self.image = QImage(image_file)
+
+            #pixmap = QPixmap(image_file)
+            self.image_label.setPixmap(QPixmap().fromImage(self.image))
+            """
         else:
             # No image to rotate
             pass
 
+    def flipImage(self, axis):
+        """
+        Mirror the image across the horizontal axis.
+        """
+        if self.image.isNull() == False:
+            if axis == "horizontal":
+                flip_h = QTransform().scale(-1, 1)
+                pixmap = QPixmap(self.image)
+                flipped = pixmap.transformed(flip_h)
+            elif axis == "vertical":
+                flip_v = QTransform().scale(1, -1)
+                pixmap = QPixmap(self.image)
+                flipped = pixmap.transformed(flip_v)
+
+            self.image_label.setPixmap(flipped)
+            #self.image_label.setPixmap(flipped.scaled(self.image_label.size(), 
+            #    Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            self.image = QImage(flipped)
+            #self.image = QPixmap(flipped)
+            self.image_label.repaint()
+        else:
+            # No image to flip
+            pass\
 
     def convertToGray(self):
         """Convert image to grayscale."""
