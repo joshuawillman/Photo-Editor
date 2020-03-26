@@ -1,9 +1,10 @@
 # import necessary modules
 import os, sys, cv2
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel, QAction,
-    QToolButton, QToolBar, QDockWidget, QMessageBox, QFileDialog, QGridLayout)
+    QToolButton, QToolBar, QDockWidget, QMessageBox, QFileDialog, QGridLayout, 
+    QScrollArea, QSizePolicy)
 from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QIcon, QPixmap, QImage, QTransform
+from PyQt5.QtGui import QIcon, QPixmap, QImage, QTransform, QPalette
 
 icon_path = "icons"
 
@@ -13,6 +14,7 @@ class imageLabel(QLabel):
         super().__init__(parent)
         self.parent = parent
         self.image = image
+        #self.image = "images/parrot.png"
 
         # Load image
         pixmap = QPixmap(self.image)
@@ -26,12 +28,14 @@ class PhotoEditorGUI(QMainWindow):
 
         self.initializeUI()
 
-        self.image = QImage()
+        #self.image = QImage()
 
     def initializeUI(self):
-        self.setMinimumSize(500, 400)
+        self.setMinimumSize(300, 200)
         self.setWindowTitle("Photo Editor")
         self.showMaximized()
+
+        self.zoom_factor = 1
 
         self.createEditingBar()
         self.createMenu()
@@ -55,7 +59,7 @@ class PhotoEditorGUI(QMainWindow):
         self.open_act.setShortcut('Ctrl+O')
         self.open_act.triggered.connect(self.openImage)
 
-        # Actions for Edit menu
+        # Actions for Tools menu
         self.rotate90_cw_act = QAction(QIcon(os.path.join(icon_path, "rotate90_cw.png")),'Rotate 90º CW', self)
         self.rotate90_cw_act.triggered.connect(lambda: self.rotateImage90("cw"))
 
@@ -67,6 +71,14 @@ class PhotoEditorGUI(QMainWindow):
 
         self.flip_vertical = QAction(QIcon(os.path.join(icon_path, "flip_vertical.png")), 'Flip Vertical', self)
         self.flip_vertical.triggered.connect(lambda: self.flipImage('vertical'))
+        
+        self.zoom_in = QAction(QIcon(os.path.join(icon_path, "zoom_in.png")), 'Zoom In', self)
+        self.zoom_in.setShortcut('Ctrl++')
+        self.zoom_in.triggered.connect(lambda: self.zoomOnImage(1.25))
+
+        self.zoom_out = QAction(QIcon(os.path.join(icon_path, "zoom_out.png")), 'Zoom Out', self)
+        self.zoom_out.setShortcut('Ctrl+-')
+        self.zoom_out.triggered.connect(lambda: self.zoomOnImage(0.75))
 
         # Actions for Views menu
         #self.tools_menu_act = QAction(QIcon(os.path.join(icon_path, "edit.png")),'Tools View...', self, checkable=True)
@@ -86,10 +98,15 @@ class PhotoEditorGUI(QMainWindow):
         file_menu.addAction(self.open_act)
 
         edit_menu = menu_bar.addMenu('Edit')
-        edit_menu.addAction(self.rotate90_cw_act)
-        edit_menu.addAction(self.rotate90_ccw_act)
-        edit_menu.addAction(self.flip_horizontal)
-        edit_menu.addAction(self.flip_vertical)
+
+        tool_menu = menu_bar.addMenu('Tools')
+        tool_menu.addAction(self.rotate90_cw_act)
+        tool_menu.addAction(self.rotate90_ccw_act)
+        tool_menu.addAction(self.flip_horizontal)
+        tool_menu.addAction(self.flip_vertical)
+        tool_menu.addSeparator()
+        tool_menu.addAction(self.zoom_in)
+        tool_menu.addAction(self.zoom_out)
 
         views_menu = menu_bar.addMenu('Views')
         views_menu.addAction(self.tools_menu_act)
@@ -97,7 +114,7 @@ class PhotoEditorGUI(QMainWindow):
     def createToolBar(self):
         """Set up the toolbar."""
         tool_bar = QToolBar("Main Toolbar")
-        tool_bar.setIconSize(QSize(30, 30))
+        tool_bar.setIconSize(QSize(26, 26))
         self.addToolBar(tool_bar)
 
         # Add actions to the toolbar
@@ -108,6 +125,9 @@ class PhotoEditorGUI(QMainWindow):
         tool_bar.addAction(self.rotate90_cw_act)
         tool_bar.addAction(self.flip_horizontal)
         tool_bar.addAction(self.flip_vertical)
+        tool_bar.addSeparator()
+        tool_bar.addAction(self.zoom_in)
+        tool_bar.addAction(self.zoom_out)
     
     def createEditingBar(self):
         """Create dock widget for editing tools."""
@@ -141,9 +161,23 @@ class PhotoEditorGUI(QMainWindow):
     def createMainLabel(self):
         """Create an instance of the imageLabel class and set it 
            as the main window's central widget."""
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setBackgroundRole(QPalette.Dark)
+        self.scroll_area.setAlignment(Qt.AlignCenter)
+        #scroll_area.setMinimumSize(800, 800)
+        
         self.image_label = imageLabel(self)
+        #TODO: Display image without distortion
+        #self.image_label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+        #self.image_label.setScaledContents(True)
+        self.image_label.resize(self.image_label.pixmap().size())
 
-        self.setCentralWidget(self.image_label)
+        self.scroll_area.setWidget(self.image_label)
+        #self.scroll_area.setVisible(False)
+
+        self.setCentralWidget(self.scroll_area)
+
+        #self.resize(QApplication.primaryScreen().availableSize() * 3 / 5)
 
     def openImage(self):
         """ """
@@ -156,8 +190,12 @@ class PhotoEditorGUI(QMainWindow):
 
             #pixmap = QPixmap(image_file)
             self.image_label.setPixmap(QPixmap().fromImage(self.image))
+            #image_size = self.image_label.sizeHint()
+            self.image_label.resize(self.image_label.pixmap().size())
 
-            #self.image_label.setPixmap(image.scaled(self.image_label.size(), 
+            #self.scroll_area.setMinimumSize(image_size)
+
+            #self.image_label.setPixmap(pixmap.scaled(self.image_label.size(), 
             #    Qt.KeepAspectRatio, Qt.SmoothTransformation))
         elif image_file == "":
             # User selected Cancel
@@ -217,7 +255,19 @@ class PhotoEditorGUI(QMainWindow):
             self.image_label.repaint()
         else:
             # No image to flip
-            pass\
+            pass
+
+    def zoomOnImage(self, zoom_value):
+        """ """
+        self.zoom_factor *= zoom_value
+        self.image_label.resize(self.zoom_factor * self.image_label.pixmap().size())
+
+        #self.scroll_area.horizontalScrollBar()
+
+    def adjustScrollBar(self, scroll_bar, value):
+        """Adjust the scrollbar when zooming in or out."""
+        #self.scroll_area.setValue()
+        pass
 
     def convertToGray(self):
         """Convert image to grayscale."""
