@@ -1,5 +1,5 @@
 # import necessary modules
-import os, sys, cv2
+import os, sys
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel, QAction,
     QToolButton, QToolBar, QDockWidget, QMessageBox, QFileDialog, QGridLayout, 
     QScrollArea, QSizePolicy)
@@ -28,7 +28,7 @@ class PhotoEditorGUI(QMainWindow):
 
         self.initializeUI()
 
-        #self.image = QImage()
+        self.image = QImage()
 
     def initializeUI(self):
         self.setMinimumSize(300, 200)
@@ -131,11 +131,14 @@ class PhotoEditorGUI(QMainWindow):
     
     def createEditingBar(self):
         """Create dock widget for editing tools."""
+        #TODO: Add a tab widget for the different editing tools
         self.editing_bar = QDockWidget("Tools")
         self.editing_bar.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.editing_bar.setMinimumWidth(90)
 
         # Create editing tool buttons
+        filters_label = QLabel("Filters")
+
         convert_to_grayscale = QToolButton()
         convert_to_grayscale.setIcon(QIcon(os.path.join(icon_path, "grayscale.png")))
         convert_to_grayscale.clicked.connect(self.convertToGray)
@@ -146,8 +149,9 @@ class PhotoEditorGUI(QMainWindow):
 
         # Set layout for dock widget
         editing_grid = QGridLayout()
-        editing_grid.addWidget(convert_to_grayscale, 0, 0, Qt.AlignTop)
-        editing_grid.addWidget(convert_to_RGB, 0, 1, Qt.AlignTop)
+        #editing_grid.addWidget(filters_label, 0, 0, 0, 2, Qt.AlignTop)
+        editing_grid.addWidget(convert_to_grayscale, 1, 0, Qt.AlignTop)
+        editing_grid.addWidget(convert_to_RGB, 1, 1, Qt.AlignTop)
 
         container = QWidget()
         container.setLayout(editing_grid)
@@ -168,8 +172,8 @@ class PhotoEditorGUI(QMainWindow):
         
         self.image_label = imageLabel(self)
         #TODO: Display image without distortion
-        #self.image_label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
-        #self.image_label.setScaledContents(True)
+        self.image_label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+        self.image_label.setScaledContents(True)
         self.image_label.resize(self.image_label.pixmap().size())
 
         self.scroll_area.setWidget(self.image_label)
@@ -215,8 +219,10 @@ class PhotoEditorGUI(QMainWindow):
             pixmap = QPixmap(self.image)
 
             rotated = pixmap.transformed(transform90, mode=Qt.SmoothTransformation)
+            #rotated = pixmap.trueMatrix(transform90, pixmap.width, pixmap.height)
 
             self.image_label.setPixmap(rotated)
+            
             #self.image_label.setPixmap(rotated.scaled(self.image_label.size(), 
             #    Qt.KeepAspectRatio, Qt.SmoothTransformation))
             self.image = QImage(rotated) 
@@ -272,12 +278,14 @@ class PhotoEditorGUI(QMainWindow):
     def convertToGray(self):
         """Convert image to grayscale."""
         converted_img = self.image.convertToFormat(QImage.Format_Grayscale8)
+        #self.image = converted_img
         self.image_label.setPixmap(QPixmap().fromImage(converted_img))
         self.image_label.repaint()
 
     def convertToRGB(self):
         """Convert image to RGB format."""
         converted_img = self.image.convertToFormat(QImage.Format_RGB32)
+        #self.image = converted_img
         self.image_label.setPixmap(QPixmap().fromImage(converted_img))
         self.image_label.repaint()
 
