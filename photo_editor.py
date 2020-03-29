@@ -1,9 +1,9 @@
 # import necessary modules
 import os, sys
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel, QAction,
-    QToolButton, QToolBar, QDockWidget, QMessageBox, QFileDialog, QGridLayout, 
+    QSlider, QToolButton, QToolBar, QDockWidget, QMessageBox, QFileDialog, QGridLayout, 
     QScrollArea, QSizePolicy)
-from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtCore import Qt, QSize, QRect
 from PyQt5.QtGui import QIcon, QPixmap, QImage, QTransform, QPalette
 
 icon_path = "icons"
@@ -60,6 +60,14 @@ class PhotoEditorGUI(QMainWindow):
         self.open_act.triggered.connect(self.openImage)
 
         # Actions for Tools menu
+        self.crop_act = QAction(QIcon(os.path.join(icon_path, "crop.png")), "Crop", self)
+        self.crop_act.setShortcut('Shift+X')
+        self.crop_act.triggered.connect(self.cropImage)
+
+        self.resize_act = QAction(QIcon(os.path.join(icon_path, "resize.png")), "Resize", self)
+        self.resize_act.setShortcut('Shift+Z')
+        self.resize_act.triggered.connect(self.resizeImage)
+
         self.rotate90_cw_act = QAction(QIcon(os.path.join(icon_path, "rotate90_cw.png")),'Rotate 90º CW', self)
         self.rotate90_cw_act.triggered.connect(lambda: self.rotateImage90("cw"))
 
@@ -100,6 +108,9 @@ class PhotoEditorGUI(QMainWindow):
         edit_menu = menu_bar.addMenu('Edit')
 
         tool_menu = menu_bar.addMenu('Tools')
+        tool_menu.addAction(self.crop_act)
+        tool_menu.addAction(self.resize_act)
+        tool_menu.addSeparator()
         tool_menu.addAction(self.rotate90_cw_act)
         tool_menu.addAction(self.rotate90_ccw_act)
         tool_menu.addAction(self.flip_horizontal)
@@ -120,6 +131,9 @@ class PhotoEditorGUI(QMainWindow):
         # Add actions to the toolbar
         tool_bar.addAction(self.open_act)
         tool_bar.addAction(self.exit_act)
+        tool_bar.addSeparator()
+        tool_bar.addAction(self.crop_act)
+        tool_bar.addAction(self.resize_act)
         tool_bar.addSeparator()
         tool_bar.addAction(self.rotate90_ccw_act)
         tool_bar.addAction(self.rotate90_cw_act)
@@ -147,11 +161,18 @@ class PhotoEditorGUI(QMainWindow):
         convert_to_RGB.setIcon(QIcon(os.path.join(icon_path, "rgb.png")))
         convert_to_RGB.clicked.connect(self.convertToRGB)
 
+        brightness_label = QLabel("Brightness")
+        brightness_slider = QSlider(Qt.Horizontal)
+        brightness_slider.setMaximum(100)
+
         # Set layout for dock widget
         editing_grid = QGridLayout()
         #editing_grid.addWidget(filters_label, 0, 0, 0, 2, Qt.AlignTop)
         editing_grid.addWidget(convert_to_grayscale, 1, 0, Qt.AlignTop)
         editing_grid.addWidget(convert_to_RGB, 1, 1, Qt.AlignTop)
+        editing_grid.addWidget(brightness_label, 2, 0, Qt.AlignTop)
+        editing_grid.addWidget(brightness_slider, 3, 0, 1, 0)
+        editing_grid.setRowStretch(4, 10)
 
         container = QWidget()
         container.setLayout(editing_grid)
@@ -168,6 +189,7 @@ class PhotoEditorGUI(QMainWindow):
         self.scroll_area = QScrollArea()
         self.scroll_area.setBackgroundRole(QPalette.Dark)
         self.scroll_area.setAlignment(Qt.AlignCenter)
+        #self.scroll_area.setWidgetResizable(False)
         #scroll_area.setMinimumSize(800, 800)
         
         self.image_label = imageLabel(self)
@@ -208,6 +230,38 @@ class PhotoEditorGUI(QMainWindow):
             QMessageBox.information(self, "Error", 
                 "Unable to open image.", QMessageBox.Ok)
 
+    def cropImage(self):
+        """Crop selected portions in the image."""
+        if self.image.isNull() == False:
+            rect = QRect(10, 20, 200, 200)
+            original_image = self.image
+            cropped = original_image.copy(rect)
+
+            self.image_label.setPixmap(QPixmap().fromImage(cropped))
+
+    def resizeImage(self):
+        """Resize image."""
+        #TODO: Resize image by specified size
+        if self.image.isNull() == False:
+            resize = QTransform().scale(0.5, 0.5)
+
+            pixmap = QPixmap(self.image)
+
+            resized_image = pixmap.transformed(resize, mode=Qt.SmoothTransformation)
+            #rotated = pixmap.trueMatrix(transform90, pixmap.width, pixmap.height)
+
+            #self.image_label.setPixmap(rotated)
+            
+            #self.image_label.setPixmap(rotated.scaled(self.image_label.size(), 
+            #    Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            self.image = QImage(resized_image) 
+            self.image_label.setPixmap(resized_image)
+            #self.image = QPixmap(rotated)
+            self.image_label.repaint() # repaint the child widget
+        else:
+            # No image to rotate
+            pass
+
     def rotateImage90(self, direction):
         """Rotate image 90º clockwise or counterclockwise."""
         if self.image.isNull() == False:
@@ -221,11 +275,12 @@ class PhotoEditorGUI(QMainWindow):
             rotated = pixmap.transformed(transform90, mode=Qt.SmoothTransformation)
             #rotated = pixmap.trueMatrix(transform90, pixmap.width, pixmap.height)
 
-            self.image_label.setPixmap(rotated)
+            #self.image_label.setPixmap(rotated)
             
             #self.image_label.setPixmap(rotated.scaled(self.image_label.size(), 
             #    Qt.KeepAspectRatio, Qt.SmoothTransformation))
             self.image = QImage(rotated) 
+            self.image_label.setPixmap(rotated)
             #self.image = QPixmap(rotated)
             self.image_label.repaint() # repaint the child widget
 
@@ -253,10 +308,11 @@ class PhotoEditorGUI(QMainWindow):
                 pixmap = QPixmap(self.image)
                 flipped = pixmap.transformed(flip_v)
 
-            self.image_label.setPixmap(flipped)
+            #self.image_label.setPixmap(flipped)
             #self.image_label.setPixmap(flipped.scaled(self.image_label.size(), 
             #    Qt.KeepAspectRatio, Qt.SmoothTransformation))
             self.image = QImage(flipped)
+            self.image_label.setPixmap(flipped)
             #self.image = QPixmap(flipped)
             self.image_label.repaint()
         else:
