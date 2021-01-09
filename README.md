@@ -1,8 +1,7 @@
 # Photo Editor 
-Photo Editor using Python and PyQt5
+Photo Editor using Python and PyQt6 (Updating the project from PyQt5)
 
-This is currently a project to create a photo editor with Python, PyQt5 and eventually OpenCV. 
-(Also part of 100 Days of Code Challenge.)
+This is currently a project to create a photo editor with Python, PyQt6.
 
 Follow me on Twitter for updates about this and other projects.  
 [![alt text][1.1]][1]
