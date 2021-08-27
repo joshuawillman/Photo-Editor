@@ -1,7 +1,7 @@
 # Photo Editor 
 Photo Editor using Python and PyQt6 (Updating the project from PyQt5, but will create a separate branch in the future for both versions.)
 
-**Code for this project will updated in the future.**
+**NOTE:** *Code for this project will be updated in the future.*
 
 This is currently a project to create a photo editor with Python, PyQt6.
 
